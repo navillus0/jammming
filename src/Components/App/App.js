@@ -3,25 +3,82 @@ import './App.css';
 import SearchBar from '../SearchBar/SearchBar.js';
 import SearchResults from '../SearchResults/SearchResults.js';
 import Playlist from '../Playlist/Playlist.js';
+import Spotify from '../../util/Spotify.js'
 
 class App extends Component {
   constructor (props) {
     super(props);
 
     this.state = {
-      searchResults: [{name: 'name1', artist: 'art1', album: 'alb1', id: 'id1'}, {
-                     name: 'name2', artist: 'art2', album: 'alb2', id: 'id2'  }]
+      searchResults: [],
+      playlistName: 'MyPlaylist',
+      playlistTracks: []
     }
+
+    this.addTrack = this.addTrack.bind(this);
+    this.removeTrack = this.removeTrack.bind(this);
+    this.updatePlaylistName = this.updatePlaylistName.bind(this);
+    this.savePlaylist = this.savePlaylist.bind(this);
+    this.search = this.search.bind(this);
   }
+
+  addTrack(track) {
+    this.state.playlistTracks.forEach(function(ptrack) {
+      if(track.id === ptrack.id) {
+        return;
+      } else {
+        this.state.playlistTracks.push(track);
+      }
+    })
+  } //addTrack uses different logic than the hint, may need to change
+
+  removeTrack(track) {
+    this.state.playlistTracks.forEach(function(ptrack) {
+      if(track.id === ptrack.id) {
+        let removalIndex = this.state.playlistTracks.indexOf(ptrack);
+        this.state.playlistTracks.splice(removalIndex, 1);
+      } else {
+        return;
+      }
+    })
+  }
+
+  updatePlaylistName(name) {
+    this.setState( { playlistName: name });
+    //this.state.playlistName = name; Avoid setting state directly, why?
+  }
+
+  savePlaylist() {
+      const playlistUris = this.state.playlistTracks.map(track => track.uri);
+      Spotify.savePlaylist(this.state.playlistName, playlistUris).then(response => {
+        if (response) {
+          this.setState({ playlistName: "New Playlist",
+            playlistTracks : [] });
+        }});
+  }
+
+  search(term) {
+    Spotify.search(term).then(searchTracks => {
+      this.setState( {searchResults: searchTracks } );
+    });
+
+  }
+//
   render() {
     return (
       <div>
-        <h1>Ja<span class="highlight">mmm</span>ing</h1>
+        <h1>Ja<span className="highlight">mmm</span>ing</h1>
         <div className="App">
-          <SearchBar />
+          <SearchBar onSearch={this.search} />
           <div className="App-playlist">
-        <SearchResults searchResults={this.state.searchResults} />
-        <Playlist />
+        <SearchResults  searchResults={this.state.searchResults}
+                        onAdd={this.addTrack} />
+
+        <Playlist playlistName={this.state.playlistName}
+                  playlistTracks={this.state.playlistTracks}
+                  onRemove={this.removeTrack}
+                  onNameChange={this.updatePlaylistName}
+                  onSave={this.savePlaylist} />
           </div>
         </div>
       </div>
